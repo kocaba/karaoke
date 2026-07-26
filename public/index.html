@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Slowiary Worship</title>
+  <style>
+    [hidden] { display: none !important; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #f0f4ff;
+      color: #1a1a2e;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── ШАПКА ─────────────────────────────────────────────── */
+    header {
+      background: #fff;
+      border-bottom: 2px solid #dde3ff;
+      padding: 0 1.5rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(63,81,181,.08);
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .header-logo {
+      width: 50px;
+      height: auto;
+      object-fit: contain;
+    }
+    .header-worship {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #3f51b5;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    /* Динамік клієнта в шапці */
+    #header-audio-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      border: 2px solid #c5cae9;
+      background: #e8eaf6;
+      cursor: pointer;
+      font-size: 1.3rem;
+      transition: border-color .2s, background .2s;
+      user-select: none;
+    }
+    #header-audio-toggle:hover { border-color: #3f51b5; }
+    #header-audio-toggle.muted {
+      border-color: #ef9a9a;
+      background: #ffebee;
+    }
+
+    /* ── ОСНОВНИЙ КОНТЕНТ ───────────────────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1.5rem 2rem;
+      gap: 1.2rem;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── Екран входу (join) ──────────────────────────────────── */
+    #join-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2rem;
+      text-align: center;
+      padding: 2rem 1rem;
+      max-width: 420px;
+    }
+    #join-screen .join-icon { font-size: 3rem; }
+    #join-screen h2 { font-size: 1.5rem; color: #3f51b5; font-weight: 700; }
+    #join-screen p  { color: #555; font-size: .95rem; line-height: 1.6; }
+    #join-btn {
+      background: #3f51b5; color: #fff; border: none;
+      padding: .9rem 3rem; font-size: 1.1rem; font-weight: 600;
+      border-radius: 10px; cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+    #join-btn:hover  { background: #303f9f; transform: translateY(-1px); }
+    #join-btn:active { transform: translateY(0); }
+
+    /* ── Кімната ─────────────────────────────────────────────── */
+    #status { font-size: .9rem; color: #888; min-height: 1.3em; text-align: center; }
+
+    #room-url-label { font-size: .75rem; color: #999; margin-bottom: -.6rem; }
+
+    /* Обгортка: посилання + QR поруч */
+    #room-url-row {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      width: 100%;
+    }
+    #room-url {
+      background: #fff; border: 1px solid #c5cae9; border-radius: 8px;
+      padding: .55rem 1rem; font-size: .85rem; color: #3f51b5;
+      word-break: break-all; cursor: pointer; flex: 1; text-align: center;
+      transition: border-color .15s;
+    }
+    #room-url:hover { border-color: #3f51b5; }
+
+    /* QR-код */
+    #qr-wrap {
+      flex-shrink: 0;
+      width: 72px; height: 72px;
+      border: 1px solid #c5cae9; border-radius: 8px;
+      background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    #qr-wrap:hover { border-color: #3f51b5; box-shadow: 0 2px 8px rgba(63,81,181,.15); }
+    #qr-wrap canvas, #qr-wrap img { display: block; width: 64px !important; height: 64px !important; }
+
+    .btn-row { display: flex; gap: .8rem; align-items: center; justify-content: center; flex-wrap: wrap; }
+
+    button {
+      background: #3f51b5; color: #fff; border: none;
+      padding: .75rem 2.2rem; font-size: 1rem; font-weight: 600;
+      border-radius: 8px; cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+    button:hover  { background: #303f9f; transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button:disabled { background: #bbb; cursor: not-allowed; transform: none; }
+    #pause-btn { background: #5c6bc0; padding: .75rem 1.6rem; }
+    #pause-btn:hover { background: #3949ab; }
+
+    /* Галочка хоста */
+    #sync-audio-label, #no-words-label {
+      display: flex; align-items: center; gap: .6rem;
+      cursor: pointer; padding: .55rem 1.1rem;
+      border: 2px solid #c5cae9; border-radius: 8px;
+      background: #fff; font-size: .9rem; color: #555;
+      user-select: none;
+      transition: border-color .15s, background .15s;
+    }
+    #sync-audio-label:hover, #no-words-label:hover { border-color: #3f51b5; }
+    #sync-audio-label.on, #no-words-label.on { border-color: #3f51b5; background: #e8eaf6; color: #3f51b5; font-weight: 600; }
+    #sync-audio-label input, #no-words-label input { accent-color: #3f51b5; width: 1rem; height: 1rem; cursor: pointer; }
+
+    /* Ряд галочок хоста */
+    #host-checks-row { display: flex; gap: .7rem; flex-wrap: wrap; justify-content: center; }
+
+    /* Volume control */
+    #volume-row {
+      display: flex; align-items: center; gap: .8rem;
+      width: 100%; max-width: 340px;
+      padding: .5rem .8rem;
+      background: #fff; border: 1px solid #c5cae9; border-radius: 8px;
+      font-size: .85rem; color: #555;
+    }
+    #volume-row span { white-space: nowrap; min-width: 2.2rem; text-align: right; font-size: .8rem; color: #888; }
+    #volume-slider {
+      flex: 1; -webkit-appearance: none; appearance: none;
+      height: 4px; border-radius: 2px;
+      background: linear-gradient(to right, #3f51b5 var(--vol, 80%), #dde3ff var(--vol, 80%));
+      outline: none; cursor: pointer;
+    }
+    #volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px;
+      border-radius: 50%; background: #3f51b5;
+      box-shadow: 0 1px 4px rgba(63,81,181,.4); cursor: pointer;
+    }
+    #volume-slider::-moz-range-thumb {
+      width: 18px; height: 18px; border: none;
+      border-radius: 50%; background: #3f51b5; cursor: pointer;
+    }
+
+    /* ── Блок субтитрів ─────────────────────────────────────── */
+    #lyrics-container {
+      width: 100%; max-width: 720px;
+      height: 420px;
+      overflow: hidden;
+      position: relative;
+      background: #fff;
+      border: 1px solid #dde3ff;
+      border-radius: 12px;
+      padding: 2.8rem 1.8rem;
+    }
+    #lyrics-container::before,
+    #lyrics-container::after {
+      content: ''; position: absolute; left: 0; right: 0; height: 72px;
+      pointer-events: none; z-index: 2;
+    }
+    #lyrics-container::before { top: 0;    background: linear-gradient(#fff, transparent); }
+    #lyrics-container::after  { bottom: 0; background: linear-gradient(transparent, #fff); }
+
+    #lyrics {
+      font-size: clamp(1.2rem, 3.5vw, 1.8rem);
+      line-height: 2.3;
+      text-align: center;
+      will-change: transform;
+
+    }
+    .word {
+      display: inline-block;
+      color: #333;
+      font-weight: 400;
+      padding: 0 2px;
+      position: relative;
+      /* Біла обводка через text-shadow — працює і на iOS і на Android Chrome.
+         8 напрямків по 1.5px дають рівну обводку навколо кожної букви */
+      text-shadow:
+         1.5px  0    0 #fff,
+        -1.5px  0    0 #fff,
+         0      1.5px 0 #fff,
+         0     -1.5px 0 #fff,
+         1.1px  1.1px 0 #fff,
+        -1.1px  1.1px 0 #fff,
+         1.1px -1.1px 0 #fff,
+        -1.1px -1.1px 0 #fff;
+      transition: color 0.4s ease, text-shadow 1.2s ease;
+    }
+    .word::before { content: attr(data-word); display: block; font-weight: 700; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
+    .word.done { color: #888; }
+    .word.pre-active {
+      text-shadow:
+         1.5px  0    0 #fff,
+        -1.5px  0    0 #fff,
+         0      1.5px 0 #fff,
+         0     -1.5px 0 #fff,
+         1.1px  1.1px 0 #fff,
+        -1.1px  1.1px 0 #fff,
+         1.1px -1.1px 0 #fff,
+        -1.1px -1.1px 0 #fff,
+        0 0 14px rgba(255, 80, 80, 0.60),
+        0 0 32px rgba(255, 80, 80, 0.35),
+        0 0 55px rgba(255, 80, 80, 0.18);
+    }
+    .word.active {
+      text-shadow:
+         1.5px  0    0 #fff,
+        -1.5px  0    0 #fff,
+         0      1.5px 0 #fff,
+         0     -1.5px 0 #fff,
+         1.1px  1.1px 0 #fff,
+        -1.1px  1.1px 0 #fff,
+         1.1px -1.1px 0 #fff,
+        -1.1px -1.1px 0 #fff,
+        0 0 10px rgba(255, 80, 80, 0.85),
+        0 0 22px rgba(255, 80, 80, 0.65),
+        0 0 45px rgba(255, 80, 80, 0.38),
+        0 0 75px rgba(255, 80, 80, 0.18),
+        0 0 110px rgba(255, 80, 80, 0.08);
+    }
+
+    /* ── Список пісень ──────────────────────────────────────── */
+    #song-picker {
+      width: 100%; background: #fff;
+      border: 1px solid #dde3ff; border-radius: 10px; overflow: hidden;
+    }
+    #song-picker-title {
+      padding: .6rem 1rem; font-size: .75rem; color: #999;
+      border-bottom: 1px solid #f0f0f0;
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    #song-list { list-style: none; overflow-y: auto; }
+    #song-list li {
+      padding: .7rem 1rem; cursor: pointer;
+      border-bottom: 1px solid #f5f5f5;
+      display: flex; align-items: center; gap: .8rem;
+      transition: background .1s; font-size: .95rem;
+    }
+    #song-list li:last-child { border-bottom: none; }
+    #song-list li:hover  { background: #e8eaf6; }
+    #song-list li.active { background: #e8eaf6; color: #3f51b5; font-weight: 600; }
+    #song-list li .num   { color: #bbb; font-size: .8rem; min-width: 1.8rem; }
+    #song-list li .name  { flex: 1; }
+    #song-list li .playing-icon { animation: bounce .5s infinite alternate; }
+    @keyframes bounce { from{transform:scaleY(.8)} to{transform:scaleY(1.2)} }
+
+    /* Головна */
+    #home-view {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 1rem; padding: 3rem 0;
+    }
+
+    footer {
+      background: #fff; border-top: 1px solid #dde3ff;
+      padding: 1rem 2rem; text-align: center;
+      font-size: .8rem; color: #bbb;
+    }
+
+    /* ── Кнопка пожертвування ───────────────────────────────── */
+    #donate-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      background: linear-gradient(135deg, #e91e63, #c2185b);
+      color: #fff;
+      border: none;
+      padding: .8rem 2rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 30px;
+      cursor: pointer;
+      margin: 1rem auto;
+      box-shadow: 0 4px 14px rgba(233,30,99,.35);
+      transition: transform .15s, box-shadow .15s;
+    }
+    #donate-btn:hover {
+      background: linear-gradient(135deg, #c2185b, #ad1457);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(233,30,99,.45);
+    }
+
+    /* ── Модальне вікно ─────────────────────────────────────── */
+    #donate-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.5);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    #donate-overlay.open { display: flex; }
+
+    #donate-modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: 0 12px 40px rgba(0,0,0,.2);
+      position: relative;
+    }
+    #donate-modal h2 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #3f51b5;
+      margin-bottom: 1.2rem;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .donate-row {
+      display: flex;
+      gap: .5rem;
+      align-items: flex-start;
+      padding: .55rem 0;
+      border-bottom: 1px solid #eee;
+      font-size: .9rem;
+      color: #333;
+    }
+    .donate-row:last-of-type { border-bottom: none; }
+    .donate-label {
+      font-weight: 700;
+      color: #555;
+      min-width: 70px;
+      flex-shrink: 0;
+    }
+    .donate-value {
+      word-break: break-all;
+    }
+    #donate-link-btn {
+      display: block;
+      width: 100%;
+      margin-top: 1.2rem;
+      background: linear-gradient(135deg, #e91e63, #c2185b);
+      color: #fff;
+      border: none;
+      padding: .8rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: background .15s;
+    }
+    #donate-link-btn:hover { background: linear-gradient(135deg,#c2185b,#ad1457); }
+    #donate-close {
+      position: absolute;
+      top: .8rem; right: 1rem;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #aaa;
+      cursor: pointer;
+      padding: .2rem .4rem;
+      line-height: 1;
+    }
+    #donate-close:hover { color: #333; transform: none; background: none; box-shadow: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-brand">
+      <span class="header-worship">{Християнське Караоке}</span>
+    </div>
+    <div id="header-audio-toggle" hidden title="Натисніть щоб заглушити">
+      <span class="speaker-icon">🔊</span>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Головна сторінка -->
+    <div id="home-view" hidden>
+      <button id="create-btn" style="font-size:1.1rem;padding:1rem 3rem">🎵 Створити кімнату</button>
+    </div>
+
+    <!-- Екран входу для клієнта -->
+    <div id="join-screen" hidden>
+      <div class="join-icon">🎵🎵🎵</div>
+      <h2>Християнські пісні</h2>
+      <p>Заходь щоб співати!</p>
+      <button id="join-btn">Зайти</button>
+    </div>
+
+    <!-- Кімната -->
+    <div id="room-view" hidden style="width:100%;display:flex;flex-direction:column;align-items:center;gap:1.2rem">
+      <div id="host-checks-row">
+        <label id="sync-audio-label" hidden>
+          <input type="checkbox" id="sync-audio-check">
+          📻 Грати музику на всіх пристроях
+        </label>
+        <label id="no-words-label" hidden>
+          <input type="checkbox" id="no-words-check">
+          🎤 Без слів (акапело)
+        </label>
+      </div>
+      <p id="room-url-label">Поділіться посиланням з друзями</p>
+      <div id="room-url-row">
+        <div id="room-url" title="Натисніть, щоб скопіювати"></div>
+        <div id="qr-wrap" title="QR-код посилання"></div>
+      </div>
+      <div id="status"></div>
+
+      <div class="btn-row">
+        <button id="play-btn"  hidden>▶ Грати</button>
+        <button id="pause-btn" hidden>⏸ Пауза</button>
+      </div>
+
+      <!-- Volume control — visible to all, controlled by host -->
+      <div id="volume-row" hidden>
+        <span>🔊</span>
+        <input id="volume-slider" type="range" min="0" max="100" value="80">
+        <span id="volume-label">80%</span>
+      </div>
+
+
+
+      <div id="lyrics-container" hidden>
+        <div id="lyrics"></div>
+      </div>
+
+      <div id="song-picker" hidden>
+        <div id="song-picker-title">Список пісень</div>
+        <ul id="song-list"></ul>
+      </div>
+
+    </div>
+
+  </main>
+<div style="text-align: center; padding:10px;">
+  <a href="https://pisni.slovo-wiry.workers.dev/">Створити нову кімнату</a>
+</div>
+
+
+  <footer>© 2026 Słowo Wiary Worship · Всі права захищені by <a style="color: #bbb;" href="https://webprogger.wordpress.com/">WebProgger</a></footer>
+
+  <script>
+    // Модальне вікно пожертвування
+    const donateBtn = document.getElementById('donate-btn');
+    const donateOverlay = document.getElementById('donate-overlay');
+    const donateClose = document.getElementById('donate-close');
+    donateBtn.addEventListener('click', () => donateOverlay.classList.add('open'));
+    donateClose.addEventListener('click', () => donateOverlay.classList.remove('open'));
+    donateOverlay.addEventListener('click', (e) => {
+      if (e.target === donateOverlay) donateOverlay.classList.remove('open');
+    });
+  </script>
+
+  <script src="/app.js"></script>
+  <video id="wake-video" loop muted playsinline
+  style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none">
+  <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28ybXA0MQAAAAhmcmVlAAAA" type="video/mp4">
+</video>
+<script>
+// iOS Wake Lock — грає порожнє відео щоб екран не гас
+document.addEventListener('click', () => {
+  const v = document.getElementById('wake-video');
+  if (v && v.paused) v.play().catch(() => {});
+}, { once: true });
+</script>
+
+  <!-- NoSleep: запобігає гасінню екрана на iOS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep.js/0.12.0/NoSleep.min.js"></script>
+  <script>
+    const _noSleep = new NoSleep();
+    document.addEventListener('click', () => {
+      _noSleep.enable().catch(() => {});
+    }, { once: true });
+  </script>
+
+  <!-- QR-код: бібліотека без бекенду -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    // Генерує QR прямо в браузері — без бекенду
+    let qrInstance = null;
+
+    function updateQR(url) {
+      const wrap = document.getElementById('qr-wrap');
+      if (!wrap || !url) return;
+      wrap.innerHTML = '';
+      qrInstance = new QRCode(wrap, {
+        text: url,
+        width: 64,
+        height: 64,
+        colorDark: '#1a1a2e',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    // Перехоплюємо момент коли roomUrlEl отримує текст
+    const _origEnterRoom = window._enterRoomPatch;
+    const roomUrlEl2 = document.getElementById('room-url');
+    if (roomUrlEl2) {
+      const observer = new MutationObserver(() => {
+        const url = roomUrlEl2.textContent.trim();
+        if (url && url.startsWith('http')) updateQR(url);
+      });
+      observer.observe(roomUrlEl2, { childList: true, characterData: true, subtree: true });
+    }
+
+    // Клік на QR — копіює посилання
+    document.getElementById('qr-wrap')?.addEventListener('click', () => {
+      const url = document.getElementById('room-url')?.textContent?.trim();
+      if (!url) return;
+      navigator.clipboard.writeText(url).then(() => {
+        const wrap = document.getElementById('qr-wrap');
+        const prev = wrap.innerHTML;
+        wrap.innerHTML = '<div style="font-size:.6rem;color:#3f51b5;text-align:center;padding:4px;font-weight:700">Скопійовано!</div>';
+        setTimeout(() => { wrap.innerHTML = prev; }, 1500);
+      });
+    });
+  </script>
+</body>
+</html>
